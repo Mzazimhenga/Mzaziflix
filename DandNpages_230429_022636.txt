@@ -1,0 +1,76 @@
+import 'package:flutter/material.dart';
+
+class DownloadPage extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Downloads'),
+      ),
+      body: Center(
+        child: Text('This is the downloads page'),
+      ),
+    );
+  }
+}
+
+class NewAndHotPage extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('New & Hot'),
+      ),
+      body: Center(
+        child: Text('This is the new & hot page'),
+      ),
+    );
+  }
+}
+
+class HomePage extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('MzaziFlix'),
+      ),
+      body: Center(
+        child: Text('This is the home page'),
+      ),
+      bottomNavigationBar: BottomNavigationBar(
+        items: [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home),
+            label: 'Home',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.file_download),
+            label: 'Downloads',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.whatshot),
+            label: 'New & Hot',
+          ),
+        ],
+        currentIndex: 0,
+        onTap: (index) {
+          switch (index) {
+            case 1:
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => DownloadPage()),
+              );
+              break;
+            case 2:
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => NewAndHotPage()),
+              );
+              break;
+          }
+        },
+      ),
+    );
+  }
+}

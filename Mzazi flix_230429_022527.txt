@@ -1,0 +1,85 @@
+from flask import Flask, render_template, request, redirect, url_for, session, flash
+from flask_sqlalchemy import SQLAlchemy
+from werkzeug.security import generate_password_hash, check_password_hash
+from datetime import datetime, timedelta
+import random
+
+app = Flask(__name__)
+app.secret_key = 'mysecretkey'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///movies.db'
+db = SQLAlchemy(app)
+
+class Movie(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(255), nullable=False)
+    description = db.Column(db.String(1000), nullable=False)
+    thumbnail_url = db.Column(db.String(255), nullable=False)
+    video_url = db.Column(db.String(255), nullable=False)
+    genres = db.Column(db.String(255), nullable=False)
+    is_licensed = db.Column(db.Boolean, nullable=False, default=False)
+    license_expiry = db.Column(db.DateTime, nullable=True)
+
+    def __repr__(self):
+        return '<Movie %r>' % self.title
+
+class User(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(50), unique=True, nullable=False)
+    email = db.Column(db.String(120), unique=True, nullable=False)
+    password_hash = db.Column(db.String(128), nullable=False)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+    subscription_plan = db.Column(db.String(10), nullable=True)
+    subscription_expiry = db.Column(db.DateTime, nullable=True)
+    preferred_genres = db.Column(db.String(255), nullable=True)
+    devices = db.relationship('Device', backref='user', lazy=True)
+    watched_movies = db.relationship('WatchedMovie', backref='user', lazy=True)
+    ratings = db.relationship('Rating', backref='user', lazy=True)
+
+    def __repr__(self):
+        return '<User %r>' % self.username
+    
+    @property
+    def password(self):
+        raise AttributeError('password is not a readable attribute')
+
+    @password.setter
+    def password(self, password):
+        self.password_hash = generate_password_hash(password)
+
+    def verify_password(self, password):
+        return check_password_hash(self.password_hash, password)
+        
+    def has_subscription(self):
+        return self.subscription_expiry is not None and self.subscription_expiry > datetime.utcnow()
+        
+    def subscribe(self, plan):
+        if plan not in ['basic', 'standard', 'premium']:
+            raise ValueError('Invalid plan')
+        if self.has_subscription():
+            self.subscription_expiry += timedelta(days=30)
+        else:
+            self.subscription_plan = plan
+            self.subscription_expiry = datetime.utcnow() + timedelta(days=30)
+
+    def cancel_subscription(self):
+        self.subscription_plan = None
+        self.subscription_expiry = None
+    
+    def get_recommended_movies(self):
+        # Get all the movies the user has not watched yet
+        movies = Movie.query.filter(Movie.id.notin_(self.watched_movies)).all()
+        
+        # If the user has preferred genres, filter the movies by those genres
+        if self.preferred_genres:
+            genres = self.preferred_genres.split(',')
+            movies = [movie for movie in movies if any(genre in movie.genres for genre in genres)]
+        
+        # If there are no movies left after filtering, return an empty list
+        if not movies:
+            return []
+        
+        # Return a random selection of movies
+        return random.sample(movies, min(len(movies), 10))
+
+class Device(db.Model
